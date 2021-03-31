@@ -87,6 +87,22 @@ public class DeviceListActivity extends AppCompatActivity {
 
             }
         });
+
+        listPairedDevices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String info = ((TextView)view).getText().toString();
+                //String address = info;
+                Log.d(TAG,"On activity result");
+                Intent intent = getIntent();
+                intent.putExtra("deviceAddress",info);
+                setResult(RESULT_OK,intent);
+                finish();
+
+            }
+        });
+
+
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 

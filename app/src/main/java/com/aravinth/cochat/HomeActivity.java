@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -23,6 +24,8 @@ import android.content.pm.PackageManager;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -49,10 +52,70 @@ import java.util.ArrayList;
 public class HomeActivity extends AppCompatActivity {
 
     private static final String TAG = "HomeActivity";
+    private chatUtils chatutils;
+    public static final int DISPLAY_SHOW_TITLE = 8;
     private Context context;
     private BluetoothAdapter bluetoothAdapter;
     private final static int REQUEST_CHECK_SETTING = 1001;
     private final static int SELECT_DEVICE = 102;
+    public final static int MESSAGE_STATE_CHANGED = 0;
+    public final static int MESSAGE_READ = 1;
+    public final static int MESSAGE_WRITE = 2;
+    public final static int MESSAGE_DEVICENAME = 3;
+    public final static int MESSAGE_TOAST = 4;
+    private String connectedDevice;
+    public static final String TOAST = "toast";
+    public static final String DEVICE_NAME = "deviceName";
+
+    private Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message msg) {
+            switch (msg.what)
+            {
+                case MESSAGE_STATE_CHANGED:
+                    switch (msg.arg1)
+                    {
+                        case chatUtils.STATE_NONE:
+                            setState("Not connected");
+                            break;
+
+                        case chatUtils.STATE_LISTEN:
+                            setState("Not connected");
+                            break;
+
+                        case chatUtils.STATE_CONNECTING:
+                            setState("Connecting...");
+                            break;
+
+                        case chatUtils.STATE_CONNECTED:
+                            setState("Connected: "+connectedDevice);
+                            break;
+                    }
+                    break;
+
+                case MESSAGE_READ:
+                    break;
+
+                case MESSAGE_WRITE:
+                    break;
+
+                case MESSAGE_DEVICENAME:
+                    connectedDevice = msg.getData().getString(DEVICE_NAME);
+                    Toast.makeText(context,connectedDevice,Toast.LENGTH_SHORT).show();
+                    break;
+
+                case MESSAGE_TOAST:
+                    Toast.makeText(context,msg.getData().getString(TOAST),Toast.LENGTH_SHORT).show();
+                    break;
+            }
+            return false;
+        }
+    });
+
+    private void setState(CharSequence subTitle)
+    {
+        getSupportActionBar().setSubtitle(subTitle);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +124,7 @@ public class HomeActivity extends AppCompatActivity {
 
         context = this;
         initBluetooth();
+        chatutils = new chatUtils(context,handler);
     }
 
     private boolean isChecked = false;
@@ -71,6 +135,10 @@ public class HomeActivity extends AppCompatActivity {
         checkable.setChecked(isChecked);
         return true;
     }
+
+
+
+
 
     private void initBluetooth()
     {
@@ -144,7 +212,12 @@ public class HomeActivity extends AppCompatActivity {
 
             String address = data.getStringExtra("deviceAddress");
             Log.d(TAG,address);
-            Toast.makeText(context,address,Toast.LENGTH_SHORT).show();
+            String deviceName = address.substring(0,(address.length() -17));
+            String deviceAddress = address.substring(address.length() - 17);
+            //Toast.makeText(context,address,Toast.LENGTH_SHORT).show();
+            getSupportActionBar().setTitle(deviceName);
+            chatutils.connect(bluetoothAdapter.getRemoteDevice(deviceAddress));
+
         }
 
         if(requestCode == REQUEST_CHECK_SETTING)
@@ -284,6 +357,16 @@ private void locationPermission()
 //            }
 //        }
 //    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(chatutils != null)
+        {
+            chatutils.stop();
+        }
+    }
 }
 
 
