@@ -51,8 +51,6 @@ public class DeviceListActivity extends AppCompatActivity {
     private ProgressBar progressScanDevices;
     private Context context;
     private BluetoothAdapter bluetoothAdapter;
-    private final static int LOCATION_REQUEST_CODE = 101;
-    private final static int REQUEST_CHECK_SETTING = 1001;
     private static final String TAG = "DeviceListActivity";
 
     @Override
@@ -131,7 +129,7 @@ public class DeviceListActivity extends AppCompatActivity {
         switch (item.getItemId())
         {
             case R.id.menu_scan_devices:
-                Toast.makeText(context,"Scan devices clicked",Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context,"Scan devices clicked",Toast.LENGTH_SHORT).show();
                 Log.d(TAG,"Clicked scan devices menu");
                 //checkPermissions();
                 //locationPermission();
@@ -201,63 +199,4 @@ public class DeviceListActivity extends AppCompatActivity {
         Log.d(TAG,"Clicked Start Discovery method");
     }
 
-//   private void locationPermission()
-//   {
-//       LocationRequest locationRequest = LocationRequest.create();
-//       locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-//       locationRequest.setInterval(5000);
-//       locationRequest.setFastestInterval(2000);
-//
-//       LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
-//               .addLocationRequest(locationRequest);
-//       builder.setAlwaysShow(true);
-//
-//       Task<LocationSettingsResponse> result = LocationServices.getSettingsClient(getApplicationContext())
-//               .checkLocationSettings(builder.build());
-//
-//       result.addOnCompleteListener(new OnCompleteListener<LocationSettingsResponse>() {
-//           @Override
-//           public void onComplete(@NonNull Task<LocationSettingsResponse> task) {
-//               try {
-//                   LocationSettingsResponse response = task.getResult(ApiException.class);
-//                   Toast.makeText(context,"Location is On",Toast.LENGTH_SHORT).show();
-//               } catch (ApiException e) {
-//                   switch (e.getStatusCode())
-//                   {
-//                       case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-//
-//                           try {
-//                               ResolvableApiException resolvableApiException = (ResolvableApiException)e;
-//                               resolvableApiException.startResolutionForResult(DeviceListActivity.this,REQUEST_CHECK_SETTING);
-//                           } catch (IntentSender.SendIntentException sendIntentException) {
-//
-//                           }
-//                           break;
-//
-//                       case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-//                           break;
-//                   }
-//               }
-//           }
-//       });
-//
-//   }
-//
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if(requestCode == REQUEST_CHECK_SETTING)
-//        {
-//            switch (resultCode)
-//            {
-//                case Activity.RESULT_OK:
-//                    Toast.makeText(context,"Location turned on",Toast.LENGTH_SHORT).show();
-//                    break;
-//
-//                case Activity.RESULT_CANCELED:
-//                    Toast.makeText(context,"Location has to be enabled",Toast.LENGTH_SHORT).show();
-//                    break;
-//            }
-//        }
-//    }
 }

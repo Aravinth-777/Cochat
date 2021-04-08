@@ -32,6 +32,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,6 +53,7 @@ import java.util.ArrayList;
 public class HomeActivity extends AppCompatActivity {
 
     private static final String TAG = "HomeActivity";
+    private static final int LOCATION_REQUEST_CODE = 200 ;
     private chatUtils chatutils;
     public static final int DISPLAY_SHOW_TITLE = 8;
     private Context context;
@@ -66,6 +68,10 @@ public class HomeActivity extends AppCompatActivity {
     private String connectedDevice;
     public static final String TOAST = "toast";
     public static final String DEVICE_NAME = "deviceName";
+    private ListView listMainChat;
+    private EditText edCreateMessage;
+    private Button btnSendMessage;
+    private ArrayAdapter<String> adapterMainChat;
 
     private Handler handler = new Handler(new Handler.Callback() {
         @Override
@@ -76,11 +82,10 @@ public class HomeActivity extends AppCompatActivity {
                     switch (msg.arg1)
                     {
                         case chatUtils.STATE_NONE:
-                            setState("Not connected");
-                            break;
+                            setState("None");
 
                         case chatUtils.STATE_LISTEN:
-                            setState("Not connected");
+                            setState("Listening...");
                             break;
 
                         case chatUtils.STATE_CONNECTING:
@@ -88,15 +93,21 @@ public class HomeActivity extends AppCompatActivity {
                             break;
 
                         case chatUtils.STATE_CONNECTED:
-                            setState("Connected: "+connectedDevice);
+                            setState("Connected");
                             break;
                     }
                     break;
 
                 case MESSAGE_READ:
+                    byte[] readBuffer = (byte[])msg.obj;
+                    String inputBuffer = new String(readBuffer,0,msg.arg1);
+                    adapterMainChat.add(connectedDevice + ": "+ inputBuffer);
                     break;
 
                 case MESSAGE_WRITE:
+                    byte[] writeBuffer = (byte[])msg.obj;
+                    String outputBuffer = new String(writeBuffer);
+                    adapterMainChat.add("Me : "+outputBuffer);
                     break;
 
                 case MESSAGE_DEVICENAME:
@@ -125,6 +136,23 @@ public class HomeActivity extends AppCompatActivity {
         context = this;
         initBluetooth();
         chatutils = new chatUtils(context,handler);
+        listMainChat = findViewById(R.id.list_conversation);
+        edCreateMessage = findViewById(R.id.enter_message);
+        btnSendMessage = findViewById(R.id.send_btn);
+        adapterMainChat = new ArrayAdapter<>(context,R.layout.list_message_layout);
+        listMainChat.setAdapter(adapterMainChat);
+
+        btnSendMessage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String message = edCreateMessage.getText().toString();
+                if(!message.isEmpty())
+                {
+                    edCreateMessage.setText("");
+                    chatutils.write(message.getBytes());
+                }
+            }
+        });
     }
 
     private boolean isChecked = false;
@@ -165,12 +193,14 @@ public class HomeActivity extends AppCompatActivity {
                 locationPermission();
                 Intent intent = new Intent(context,DeviceListActivity.class);
                 startActivityForResult(intent,SELECT_DEVICE);
-                Toast.makeText(context,"Clicked search devices",Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context,"Clicked search devices",Toast.LENGTH_SHORT).show();
                 return true;
 
             case R.id.menu_enable_bluetooth:
+                checkPermissions();
+                checkAllPermissions();
                 enableBluetooth();
-                Toast.makeText(context,"Clicked enable bluetooth",Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context,"Clicked enable bluetooth",Toast.LENGTH_SHORT).show();
                 return true;
 
             case R.id.dark_theme:
@@ -185,25 +215,6 @@ public class HomeActivity extends AppCompatActivity {
 
     }
 
-//    private void checkAllPermissions() {
-//        if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-//        {
-//            Log.d(TAG,"Fine location permission granted");
-//        }
-//        if(ContextCompat.checkSelfPermission(context,Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED)
-//        {
-//            Log.d(TAG,"Bluetooth location permission granted");
-//        }
-//        if(ContextCompat.checkSelfPermission(context,Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED)
-//        {
-//            Log.d(TAG,"Bluetooth admin location permission granted");
-//        }
-//        if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-//        {
-//            Log.d(TAG,"Coarse location permission granted");
-//        }
-//    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
@@ -214,9 +225,25 @@ public class HomeActivity extends AppCompatActivity {
             Log.d(TAG,address);
             String deviceName = address.substring(0,(address.length() -17));
             String deviceAddress = address.substring(address.length() - 17);
+            Log.d(TAG,deviceAddress);
             //Toast.makeText(context,address,Toast.LENGTH_SHORT).show();
-            getSupportActionBar().setTitle(deviceName);
-            chatutils.connect(bluetoothAdapter.getRemoteDevice(deviceAddress));
+
+//            if(bluetoothAdapter.getRemoteDevice(deviceAddress).getBondState() != BluetoothDevice.BOND_BONDED)
+//            {
+//                Log.d(TAG,"Before createbond method");
+//                boolean isPaired = bluetoothAdapter.getRemoteDevice(deviceAddress).createBond();
+//                Log.d(TAG,"after createbond method");
+//            }
+//
+//                Log.d(TAG,"Created Bond successfully!!!!!");
+                getSupportActionBar().setTitle(deviceName);
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+                chatutils.connect(device);
+
+
+
+
+
 
         }
 
@@ -240,7 +267,7 @@ public class HomeActivity extends AppCompatActivity {
     {
         if(!bluetoothAdapter.isEnabled())
         {
-            Toast.makeText(context,"Bluetooth is getting ON",Toast.LENGTH_SHORT).show();
+            //Toast.makeText(context,"Bluetooth is getting ON",Toast.LENGTH_SHORT).show();
             bluetoothAdapter.enable();
         }
         if(bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE)
@@ -317,7 +344,7 @@ private void locationPermission()
         public void onComplete(@NonNull Task<LocationSettingsResponse> task) {
             try {
                 LocationSettingsResponse response = task.getResult(ApiException.class);
-                Toast.makeText(context,"Location is On",Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context,"Location is On",Toast.LENGTH_SHORT).show();
             } catch (ApiException e) {
                 switch (e.getStatusCode())
                 {
@@ -357,6 +384,73 @@ private void locationPermission()
 //            }
 //        }
 //    }
+
+    private void checkAllPermissions() {
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        {
+            Log.d(TAG,"Fine location permission granted");
+        }
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED)
+        {
+            Log.d(TAG,"Bluetooth location permission granted");
+        }
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED)
+        {
+            Log.d(TAG,"Bluetooth admin location permission granted");
+        }
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        {
+            Log.d(TAG,"Coarse location permission granted");
+        }
+    }
+
+    private void checkPermissions()
+    {
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(HomeActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+        }
+        else
+        {
+            Intent intent = new Intent(context,DeviceListActivity.class);
+            startActivityForResult(intent,SELECT_DEVICE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if(LOCATION_REQUEST_CODE == requestCode)
+        {
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            {
+                Toast.makeText(context,"Permission Granted Successfully",Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(context,DeviceListActivity.class);
+                startActivityForResult(intent,SELECT_DEVICE);
+
+            }
+            else
+            {
+                new AlertDialog.Builder(context)
+                        .setCancelable(true)
+                        .setMessage("Location Permission is Required\nPlease Grant")
+                        .setPositiveButton("Grant", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                checkPermissions();
+                            }
+                        })
+                        .setNegativeButton("Deny", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                HomeActivity.this.finish();
+                            }
+                        })
+                        .show();
+            }
+        }
+        else
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
 
 
     @Override
